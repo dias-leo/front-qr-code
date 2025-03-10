@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Testando API do Home Assistant</title>
+</head>
+
+<body>
+  <h1>Dados do Home Assistant</h1>
+  <div id="data"></div>
+
+  <script>
+    // Substitua a URL com o endereço da sua API do Home Assistant
+    const apiUrl = 'http://endereco-do-seu-home-assistant/api';
+
+    // Função para fazer a requisição e mostrar os dados
+    function fetchData() {
+      fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer SEU_TOKEN_AQUI',  // Adicione seu token de autenticação aqui
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Mostra os dados gerais do sistema (exemplo: configuração ou status)
+        let output = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        document.getElementById('data').innerHTML = output;
+      })
+      .catch(error => console.error('Erro ao buscar dados:', error));
+    }
+
+    // Chama a função para pegar os dados
+    fetchData();
+  </script>
+</body>
+
+</html>
