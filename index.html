@@ -1,41 +1,113 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Testando API do Home Assistant</title>
+  <title>Controle Home Assistant</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    button {
+      font-size: 20px;
+      margin: 10px;
+      padding: 10px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    #devices-list {
+      list-style-type: none;
+      padding: 0;
+    }
+    .device-item {
+      margin: 10px 0;
+    }
+  </style>
 </head>
-
 <body>
-  <h1>Dados do Home Assistant</h1>
-  <div id="data"></div>
+
+  <h1>Controle de Dispositivos Virtuais</h1>
+  
+  <ul id="devices-list"></ul> <!-- Lista de dispositivos -->
 
   <script>
-    // Substitua a URL com o endereço da sua API do Home Assistant
-    const apiUrl = 'http://endereco-do-seu-home-assistant/api';
+    const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjZjY5MDQzNDBiY2U0ZDJlOTEwYzY5OGI2OWVhYjNmOCIsImlhdCI6MTc0MTYzMjgzNywiZXhwIjoyMDU2OTkyODM3fQ.dpiaSLihcZGttQOv5ICiWiYt_JsRfWBVKTedg7YH37I"; // Substitua pelo seu token
+    const haUrl = "http://192.168.0.47:8123"; // IP do seu Home Assistant
 
-    // Função para fazer a requisição e mostrar os dados
-    function fetchData() {
-      fetch(apiUrl, {
+    // Função para fazer requisições à API do Home Assistant
+    function sendRequest(service, entityId) {
+      fetch(`${haUrl}/api/services/${service}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          entity_id: entityId
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log("Resposta:", data);
+      })
+      .catch(error => {
+        console.error("Erro:", error);
+      });
+    }
+
+    // Função para obter dispositivos e exibir na lista
+    function loadDevices() {
+      fetch(`${haUrl}/api/states`, {
         method: 'GET',
         headers: {
-          'Authorization': 'Bearer SEU_TOKEN_AQUI',  // Adicione seu token de autenticação aqui
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       })
       .then(response => response.json())
-      .then(data => {
-        // Mostra os dados gerais do sistema (exemplo: configuração ou status)
-        let output = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
-        document.getElementById('data').innerHTML = output;
+      .then(devices => {
+        const devicesList = document.getElementById("devices-list");
+        devicesList.innerHTML = ""; // Limpa a lista
+
+        devices.forEach(device => {
+          // Filtra apenas dispositivos do tipo 'light' ou 'switch'
+          if (device.entity_id.startsWith('light') || device.entity_id.startsWith('switch')) {
+            const li = document.createElement("li");
+            li.classList.add("device-item");
+
+            const stateButton = document.createElement("button");
+            stateButton.textContent = device.state === "off" ? "Ligar" : "Desligar"; // Alternar texto
+            stateButton.addEventListener("click", () => {
+              const service = device.state === "off" ? "turn_on" : "turn_off"; // Alterna entre ligar/desligar
+              const entityType = device.entity_id.startsWith('light') ? 'light' : 'switch'; // Verifica se é luz ou switch
+              sendRequest(`${entityType}/${service}`, device.entity_id);
+              loadDevices(); // Recarrega a lista após a ação
+            });
+
+            li.textContent = `${device.entity_id} - Estado: ${device.state}`;
+            li.appendChild(stateButton);
+            devicesList.appendChild(li);
+          }
+        });
       })
-      .catch(error => console.error('Erro ao buscar dados:', error));
+      .catch(error => {
+        console.error("Erro ao carregar dispositivos:", error);
+      });
     }
 
-    // Chama a função para pegar os dados
-    fetchData();
+    // Carrega os dispositivos quando a página é carregada
+    loadDevices();
   </script>
-</body>
 
+</body>
 </html>
